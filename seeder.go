@@ -210,7 +210,3 @@ func rowCount(dest any) int {
 	}
 	return v.Elem().Len()
 }
-
-// ordered returns specs in registration order. Foreign-key-aware and explicit
-// ordering are layered on in order.go.
-func (s *Seeder) ordered() ([]*spec, error) { return s.specs, nil }
