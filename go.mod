@@ -1,6 +1,6 @@
 module github.com/promptrails/gorm-seed
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/glebarez/sqlite v1.11.0

@@ -1,12 +1,14 @@
 package gormseed
 
+import "context"
+
 // Option configures a Seeder.
 type Option func(*Seeder)
 
 // WithAutoOrder enables automatic, foreign-key-safe load ordering. The seeder
-// inspects each model's belongs-to relationships and loads parents before
-// children. Explicit After dependencies are always honored on top of this. A
-// dependency cycle makes Run fail; break it with explicit ordering.
+// inspects each model's belongs-to and has-many relationships and loads parents
+// before children. Explicit After dependencies are always honored on top of
+// this. A dependency cycle makes Run fail; break it with explicit ordering.
 func WithAutoOrder() Option {
 	return func(s *Seeder) { s.autoOrder = true }
 }
@@ -58,7 +60,41 @@ func WithDefaultConflict(c Conflict) Option {
 // pointer to a slice of models. JSON (".json") is registered by default; use
 // this to add formats such as YAML without the core taking on the dependency.
 func WithDecoder(ext string, fn func(data []byte, dest any) error) Option {
+	return func(s *Seeder) { s.decoders[ext] = decoderFunc(fn) }
+}
+
+// WithDecoderContext registers a context-aware decoder for files with the given
+// extension. This is like WithDecoder but the function also receives the
+// context from Run, allowing cancellation and tracing.
+func WithDecoderContext(ext string, fn func(ctx context.Context, data []byte, dest any) error) Option {
 	return func(s *Seeder) { s.decoders[ext] = fn }
+}
+
+// WithBatchSize sets the number of rows inserted in each batch when creating
+// records. Use this when seeding large fixture files to avoid excessive memory
+// usage or statement-size limits. A value of 0 (default) inserts all rows in a
+// single Create call.
+func WithBatchSize(n int) Option {
+	return func(s *Seeder) { s.batchSize = n }
+}
+
+// WithLogger sets a logger on the seeder. The logger receives informational
+// messages about seeding progress (spec start, rows inserted, etc.).
+func WithLogger(l Logger) Option {
+	return func(s *Seeder) { s.logger = l }
+}
+
+// WithBeforeSeedHook registers a hook that is called before each spec is
+// seeded (after decoding, before insert). Multiple hooks are called in
+// registration order.
+func WithBeforeSeedHook(hook SeedHook) Option {
+	return func(s *Seeder) { s.beforeHooks = append(s.beforeHooks, hook) }
+}
+
+// WithAfterSeedHook registers a hook that is called after each spec is seeded
+// (after insert). Multiple hooks are called in registration order.
+func WithAfterSeedHook(hook SeedHook) Option {
+	return func(s *Seeder) { s.afterHooks = append(s.afterHooks, hook) }
 }
 
 // SpecOption configures a single registered fixture.

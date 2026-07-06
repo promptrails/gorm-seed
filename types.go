@@ -1,5 +1,16 @@
 package gormseed
 
+import "context"
+
+// Logger is the interface used for logging within the seeder. Implementations
+// must be safe for concurrent use. Set it with WithLogger.
+type Logger interface {
+	Printf(format string, v ...any)
+}
+
+// SeedHook is called before or after a spec is seeded.
+type SeedHook func(ctx context.Context, specName string, planned int)
+
 // spec is a single registered fixture: a file name, the destination slice it
 // decodes into, and per-spec behavior.
 type spec struct {

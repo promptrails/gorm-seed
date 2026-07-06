@@ -52,8 +52,6 @@ func (c Conflict) clause(sch *schema.Schema) (clause.Expression, bool) {
 	case conflictError:
 		return nil, false
 	case conflictSkip:
-		// DO NOTHING is valid without an explicit target on the dialects we
-		// support, so leave Columns empty unless the caller set one.
 		return clause.OnConflict{Columns: c.targetColumns(sch), DoNothing: true}, true
 	case conflictUpdateAll:
 		return clause.OnConflict{Columns: c.targetColumns(sch), UpdateAll: true}, true

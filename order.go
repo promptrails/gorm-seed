@@ -38,11 +38,15 @@ func (s *Seeder) ordered() ([]*spec, error) {
 	// Explicit After dependencies (always honored).
 	for _, sp := range s.specs {
 		for _, dep := range sp.after {
-			addEdge(s.byName[dep], sp)
+			depSpec, ok := s.byName[dep]
+			if !ok {
+				return nil, fmt.Errorf("gormseed: spec %q depends on %q which was not registered", sp.name, dep)
+			}
+			addEdge(depSpec, sp)
 		}
 	}
 
-	// Foreign-key edges from belongs-to relationships: parent loads before child.
+	// Foreign-key edges from relationships: parent loads before child.
 	if s.autoOrder {
 		if err := s.addForeignKeyEdges(addEdge); err != nil {
 			return nil, err
@@ -52,25 +56,33 @@ func (s *Seeder) ordered() ([]*spec, error) {
 	return s.topoSort(indeg, edges)
 }
 
-// addForeignKeyEdges inspects each registered model's belongs-to relationships
-// and adds an edge from the referenced (parent) spec to the owning (child) spec.
+// addForeignKeyEdges inspects each registered model's belongs-to and has-many
+// relationships and adds an edge from the referenced (parent) spec to the
+// owning (child) spec.
 func (s *Seeder) addForeignKeyEdges(addEdge func(from, to *spec)) error {
 	schemas := make(map[*spec]*schema.Schema, len(s.specs))
 	byTable := make(map[string]*spec, len(s.specs))
 	for _, sp := range s.specs {
 		sch, err := s.schemaOf(sp.dest)
 		if err != nil {
-			return err
+			return fmt.Errorf("gormseed: parse schema for %s: %w", sp.name, err)
 		}
 		schemas[sp] = sch
 		byTable[sch.Table] = sp
 	}
 	for _, sp := range s.specs {
 		for _, rel := range schemas[sp].Relationships.Relations {
-			if rel.Type != schema.BelongsTo || rel.FieldSchema == nil {
+			if rel.FieldSchema == nil {
 				continue
 			}
-			addEdge(byTable[rel.FieldSchema.Table], sp)
+			switch rel.Type {
+			case schema.BelongsTo:
+				// Child (sp) belongs to parent: parent loads before child.
+				addEdge(byTable[rel.FieldSchema.Table], sp)
+			case schema.HasMany, schema.HasOne:
+				// Parent (sp) has many/one child: parent loads before child.
+				addEdge(sp, byTable[rel.FieldSchema.Table])
+			}
 		}
 	}
 	return nil

@@ -20,9 +20,14 @@
 //   - Idempotent inserts with selectable conflict strategy (Skip, Update,
 //     UpdateAll, Error), per spec or as a seeder-wide default.
 //   - Foreign-key-safe ordering: WithAutoOrder loads parents before children by
-//     inspecting belongs-to relationships; After adds explicit edges.
+//     inspecting belongs-to and has-many relationships; After adds explicit
+//     edges.
 //   - Profiles (dev/demo/test), dry runs, transactional runs, and a per-spec
 //     Result report.
 //   - Pluggable decoders (JSON built in; add YAML or others without the core
 //     taking on the dependency).
+//   - Batch inserts for large fixture files via WithBatchSize.
+//   - Table cleanup via Clean, for resetting data between runs.
+//   - Before/after seed hooks for monitoring and instrumentation.
+//   - Optional logger for progress output.
 package gormseed
