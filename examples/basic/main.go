@@ -9,8 +9,9 @@ import (
 	"io/fs"
 
 	"github.com/glebarez/sqlite"
-	gormseed "github.com/promptrails/gorm-seed"
 	"gorm.io/gorm"
+
+	gormseed "github.com/promptrails/gorm-seed"
 )
 
 //go:embed fixtures/*.json
